@@ -1,0 +1,50 @@
+body {
+  font-family: Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+  background-color: #f0f0f0;
+}
+
+.container {
+  text-align: center;
+}
+
+button {
+  padding: 10px 20px;
+  font-size: 16px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin: 5px;
+}
+
+#connectButton {
+  background-color: #007bff;
+  color: white;
+}
+
+#connectButton:hover {
+  background-color: #0056b3;
+}
+
+#disconnectButton {
+  background-color: #dc3545;
+  color: white;
+}
+
+#disconnectButton:hover {
+  background-color: #c82333;
+}
+
+#loading {
+  font-size: 18px;
+  margin: 10px;
+  color: #333;
+}
+
+.hidden {
+  display: none;
+}
