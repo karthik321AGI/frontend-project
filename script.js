@@ -1,5 +1,9 @@
 const ws = new WebSocket('wss://backend-project-5r9n.onrender.com');
 
+const connectButton = document.getElementById('connectButton');
+const disconnectButton = document.getElementById('disconnectButton');
+const loadingIndicator = document.getElementById('loading');
+
 connectButton.addEventListener('click', () => {
   loadingIndicator.classList.remove('hidden');
   connectButton.classList.add('hidden');
