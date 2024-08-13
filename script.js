@@ -29,6 +29,10 @@ function connectWebSocket() {
       setStatus('Connected to a speaker');
     } else if (data.type === 'waiting_for_speaker') {
       setStatus('Waiting for an available speaker...');
+    } else if (data.type === 'client_connected') {
+      loadingIndicator.classList.add('hidden');
+      disconnectButton.classList.remove('hidden');
+      setStatus('Connected to a client');
     }
   };
 
@@ -55,7 +59,14 @@ connectButton.addEventListener('click', () => {
     connectWebSocket();
   }
 
-  ws.send(JSON.stringify({ type: 'request_speaker' }));
+  // Randomly decide if this connection is a speaker or a client
+  const isSpeaker = Math.random() < 0.5;
+  if (isSpeaker) {
+    ws.send(JSON.stringify({ type: 'available_as_speaker' }));
+    setStatus('Available as a speaker');
+  } else {
+    ws.send(JSON.stringify({ type: 'request_speaker' }));
+  }
 });
 
 disconnectButton.addEventListener('click', () => {
