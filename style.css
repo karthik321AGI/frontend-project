@@ -39,7 +39,8 @@ button {
   background-color: #c82333;
 }
 
-#loading {
+#loading,
+#status {
   font-size: 18px;
   margin: 10px;
   color: #333;
