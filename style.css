@@ -39,6 +39,15 @@ button {
   background-color: #c82333;
 }
 
+#speakerButton {
+  background-color: #28a745;
+  color: white;
+}
+
+#speakerButton:hover {
+  background-color: #218838;
+}
+
 #loading,
 #status {
   font-size: 18px;
@@ -48,4 +57,10 @@ button {
 
 .hidden {
   display: none;
+}
+
+#callControls {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
 }

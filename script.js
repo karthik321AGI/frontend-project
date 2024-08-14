@@ -2,11 +2,16 @@ const wsUrl = 'wss://backend-project-5r9n.onrender.com';
 let ws;
 let peerConnection;
 let localStream;
+let remoteStream;
+let remoteAudio;
 
 const connectButton = document.getElementById('connectButton');
 const disconnectButton = document.getElementById('disconnectButton');
+const speakerButton = document.getElementById('speakerButton');
 const loadingIndicator = document.getElementById('loading');
 const statusDiv = document.getElementById('status');
+
+let isSpeakerOn = true;
 
 function setStatus(message) {
   statusDiv.textContent = message;
@@ -35,12 +40,29 @@ function createPeerConnection() {
   };
 
   peerConnection.ontrack = (event) => {
-    const remoteAudio = new Audio();
-    remoteAudio.srcObject = event.streams[0];
+    remoteStream = event.streams[0];
+    remoteAudio = new Audio();
+    remoteAudio.srcObject = remoteStream;
     remoteAudio.play();
+    updateAudioOutput();
   };
 
   localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+}
+
+function updateAudioOutput() {
+  if (remoteAudio) {
+    if (isSpeakerOn) {
+      remoteAudio.setSinkId('');
+    } else {
+      // Try to use the earpiece
+      remoteAudio.setSinkId('communications').catch(error => {
+        console.error('Error setting audio output: ', error);
+        // Fallback to default audio output if earpiece is not available
+        remoteAudio.setSinkId('');
+      });
+    }
+  }
 }
 
 async function connectWebSocket() {
@@ -60,6 +82,7 @@ async function connectWebSocket() {
       case 'client_connected':
         loadingIndicator.classList.add('hidden');
         disconnectButton.classList.remove('hidden');
+        speakerButton.classList.remove('hidden');
         setStatus(data.type === 'speaker_connected' ? 'Connected to a speaker' : 'Connected to a client');
         createPeerConnection();
         if (data.type === 'speaker_connected') {
@@ -98,6 +121,7 @@ async function connectWebSocket() {
     setStatus('Disconnected from server');
     connectButton.classList.remove('hidden');
     disconnectButton.classList.add('hidden');
+    speakerButton.classList.add('hidden');
     loadingIndicator.classList.add('hidden');
   };
 }
@@ -130,9 +154,21 @@ disconnectButton.addEventListener('click', () => {
     localStream.getTracks().forEach(track => track.stop());
     localStream = null;
   }
+  if (remoteAudio) {
+    remoteAudio.pause();
+    remoteAudio.srcObject = null;
+    remoteAudio = null;
+  }
   disconnectButton.classList.add('hidden');
+  speakerButton.classList.add('hidden');
   connectButton.classList.remove('hidden');
   setStatus('Call ended');
+});
+
+speakerButton.addEventListener('click', () => {
+  isSpeakerOn = !isSpeakerOn;
+  updateAudioOutput();
+  speakerButton.innerHTML = isSpeakerOn ? '<i class="fas fa-volume-up"></i>' : '<i class="fas fa-phone"></i>';
 });
 
 // Initial connection
