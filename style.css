@@ -10,10 +10,6 @@ body {
 
 .container {
   text-align: center;
-  background-color: white;
-  padding: 2rem;
-  border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 button {
@@ -23,7 +19,6 @@ button {
   border-radius: 5px;
   cursor: pointer;
   margin: 5px;
-  transition: background-color 0.3s;
 }
 
 #connectButton {
@@ -44,19 +39,6 @@ button {
   background-color: #c82333;
 }
 
-#speakerButton {
-  background-color: #6c757d;
-  color: white;
-}
-
-#speakerButton:hover {
-  background-color: #545b62;
-}
-
-#speakerButton.active {
-  background-color: #28a745;
-}
-
 #loading,
 #status {
   font-size: 18px;
@@ -66,10 +48,4 @@ button {
 
 .hidden {
   display: none;
-}
-
-#callControls {
-  display: flex;
-  justify-content: center;
-  margin-top: 1rem;
 }
