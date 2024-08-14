@@ -3,6 +3,9 @@ let ws;
 let peerConnection;
 let localStream;
 let remoteAudio;
+let audioContext;
+let audioSource;
+let audioDestination;
 
 const connectButton = document.getElementById('connectButton');
 const disconnectButton = document.getElementById('disconnectButton');
@@ -45,31 +48,45 @@ function createPeerConnection() {
       document.body.appendChild(remoteAudio);
     }
     remoteAudio.srcObject = event.streams[0];
-    updateAudioOutput();
+    setupAudioContext();
   };
 
   localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 }
 
-function updateAudioOutput() {
-  if (remoteAudio) {
-    remoteAudio.setSinkId(isSpeakerOn ? '' : 'earpiece')
-      .then(() => console.log('Audio output device set successfully'))
-      .catch(error => {
-        console.warn('Failed to set audio output. Falling back to default behavior.', error);
-        // Fallback: use AudioContext to control the audio destination
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const source = audioContext.createMediaStreamSource(remoteAudio.srcObject);
-        const destination = isSpeakerOn ? audioContext.destination : audioContext.createMediaStreamDestination();
-        source.connect(destination);
-
-        if (!isSpeakerOn) {
-          // If earpiece mode, we need to replace the audio element's source
-          remoteAudio.srcObject = destination.stream;
-        }
-      });
+function setupAudioContext() {
+  if (!audioContext) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
   }
+
+  if (audioSource) {
+    audioSource.disconnect();
+  }
+
+  audioSource = audioContext.createMediaStreamSource(remoteAudio.srcObject);
+  audioDestination = isSpeakerOn ? audioContext.destination : audioContext.createMediaStreamDestination();
+  audioSource.connect(audioDestination);
+
+  if (!isSpeakerOn) {
+    remoteAudio.srcObject = audioDestination.stream;
+  } else {
+    remoteAudio.srcObject = audioSource.mediaStream;
+  }
+
+  updateSpeakerButtonState();
+}
+
+function toggleSpeaker() {
+  isSpeakerOn = !isSpeakerOn;
+  if (remoteAudio && remoteAudio.srcObject) {
+    setupAudioContext();
+  }
+  updateSpeakerButtonState();
+}
+
+function updateSpeakerButtonState() {
   speakerButton.innerHTML = isSpeakerOn ? '<i class="fas fa-volume-up"></i>' : '<i class="fas fa-phone"></i>';
+  speakerButton.setAttribute('aria-label', isSpeakerOn ? 'Switch to earpiece' : 'Switch to speaker');
 }
 
 async function connectWebSocket() {
@@ -167,16 +184,20 @@ disconnectButton.addEventListener('click', () => {
     document.body.removeChild(remoteAudio);
     remoteAudio = null;
   }
+  if (audioContext) {
+    audioContext.close();
+    audioContext = null;
+  }
   disconnectButton.classList.add('hidden');
   speakerButton.classList.add('hidden');
   connectButton.classList.remove('hidden');
   setStatus('Call ended');
 });
 
-speakerButton.addEventListener('click', () => {
-  isSpeakerOn = !isSpeakerOn;
-  updateAudioOutput();
-});
+speakerButton.addEventListener('click', toggleSpeaker);
+
+// Update speaker button state initially
+updateSpeakerButtonState();
 
 // Initial connection
 connectWebSocket();
