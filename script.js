@@ -2,11 +2,15 @@ const wsUrl = 'wss://backend-project-5r9n.onrender.com';
 let ws;
 let peerConnection;
 let localStream;
+let remoteStream;
+let isSpeakerActive = false;
 
 const connectButton = document.getElementById('connectButton');
 const disconnectButton = document.getElementById('disconnectButton');
+const speakerButton = document.getElementById('speakerButton');
 const loadingIndicator = document.getElementById('loading');
 const statusDiv = document.getElementById('status');
+const callControls = document.getElementById('callControls');
 
 function setStatus(message) {
   statusDiv.textContent = message;
@@ -35,12 +39,26 @@ function createPeerConnection() {
   };
 
   peerConnection.ontrack = (event) => {
+    remoteStream = event.streams[0];
     const remoteAudio = new Audio();
-    remoteAudio.srcObject = event.streams[0];
+    remoteAudio.srcObject = remoteStream;
     remoteAudio.play();
+    updateSpeakerMode();
   };
 
   localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+}
+
+function updateSpeakerMode() {
+  if (remoteStream) {
+    remoteStream.getAudioTracks().forEach(track => {
+      if ('setSinkId' in track) {
+        track.setSinkId(isSpeakerActive ? 'speaker' : 'default')
+          .then(() => console.log(`Audio output device ${isSpeakerActive ? 'set to speaker' : 'reset to default'}`))
+          .catch(error => console.error('Error setting audio output device:', error));
+      }
+    });
+  }
 }
 
 async function connectWebSocket() {
@@ -59,7 +77,7 @@ async function connectWebSocket() {
       case 'speaker_connected':
       case 'client_connected':
         loadingIndicator.classList.add('hidden');
-        disconnectButton.classList.remove('hidden');
+        callControls.classList.remove('hidden');
         setStatus(data.type === 'speaker_connected' ? 'Connected to a speaker' : 'Connected to a client');
         createPeerConnection();
         if (data.type === 'speaker_connected') {
@@ -85,6 +103,9 @@ async function connectWebSocket() {
       case 'waiting_for_speaker':
         setStatus('Waiting for an available speaker...');
         break;
+      case 'call_ended':
+        endCall();
+        break;
     }
   };
 
@@ -96,9 +117,7 @@ async function connectWebSocket() {
   ws.onclose = () => {
     console.log('WebSocket connection closed');
     setStatus('Disconnected from server');
-    connectButton.classList.remove('hidden');
-    disconnectButton.classList.add('hidden');
-    loadingIndicator.classList.add('hidden');
+    endCall();
   };
 }
 
@@ -118,10 +137,7 @@ connectButton.addEventListener('click', async () => {
   setStatus(isSpeaker ? 'Available as a speaker' : 'Requesting a speaker');
 });
 
-disconnectButton.addEventListener('click', () => {
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ type: 'end_call' }));
-  }
+function endCall() {
   if (peerConnection) {
     peerConnection.close();
     peerConnection = null;
@@ -130,9 +146,27 @@ disconnectButton.addEventListener('click', () => {
     localStream.getTracks().forEach(track => track.stop());
     localStream = null;
   }
-  disconnectButton.classList.add('hidden');
+  if (remoteStream) {
+    remoteStream.getTracks().forEach(track => track.stop());
+    remoteStream = null;
+  }
+  callControls.classList.add('hidden');
   connectButton.classList.remove('hidden');
   setStatus('Call ended');
+}
+
+disconnectButton.addEventListener('click', () => {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'end_call' }));
+  }
+  endCall();
+});
+
+speakerButton.addEventListener('click', () => {
+  isSpeakerActive = !isSpeakerActive;
+  speakerButton.classList.toggle('active', isSpeakerActive);
+  updateSpeakerMode();
+  setStatus(`Speaker mode ${isSpeakerActive ? 'activated' : 'deactivated'}`);
 });
 
 // Initial connection
