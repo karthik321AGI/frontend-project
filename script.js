@@ -2,7 +2,6 @@ const wsUrl = 'wss://backend-project-5r9n.onrender.com';
 let ws;
 let peerConnection;
 let localStream;
-let remoteStream;
 let remoteAudio;
 
 const connectButton = document.getElementById('connectButton');
@@ -40,10 +39,12 @@ function createPeerConnection() {
   };
 
   peerConnection.ontrack = (event) => {
-    remoteStream = event.streams[0];
-    remoteAudio = new Audio();
-    remoteAudio.srcObject = remoteStream;
-    remoteAudio.play();
+    if (!remoteAudio) {
+      remoteAudio = new Audio();
+      remoteAudio.autoplay = true;
+      document.body.appendChild(remoteAudio);
+    }
+    remoteAudio.srcObject = event.streams[0];
     updateAudioOutput();
   };
 
@@ -52,17 +53,23 @@ function createPeerConnection() {
 
 function updateAudioOutput() {
   if (remoteAudio) {
-    if (isSpeakerOn) {
-      remoteAudio.setSinkId('');
-    } else {
-      // Try to use the earpiece
-      remoteAudio.setSinkId('communications').catch(error => {
-        console.error('Error setting audio output: ', error);
-        // Fallback to default audio output if earpiece is not available
-        remoteAudio.setSinkId('');
+    remoteAudio.setSinkId(isSpeakerOn ? '' : 'earpiece')
+      .then(() => console.log('Audio output device set successfully'))
+      .catch(error => {
+        console.warn('Failed to set audio output. Falling back to default behavior.', error);
+        // Fallback: use AudioContext to control the audio destination
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioContext.createMediaStreamSource(remoteAudio.srcObject);
+        const destination = isSpeakerOn ? audioContext.destination : audioContext.createMediaStreamDestination();
+        source.connect(destination);
+
+        if (!isSpeakerOn) {
+          // If earpiece mode, we need to replace the audio element's source
+          remoteAudio.srcObject = destination.stream;
+        }
       });
-    }
   }
+  speakerButton.innerHTML = isSpeakerOn ? '<i class="fas fa-volume-up"></i>' : '<i class="fas fa-phone"></i>';
 }
 
 async function connectWebSocket() {
@@ -157,6 +164,7 @@ disconnectButton.addEventListener('click', () => {
   if (remoteAudio) {
     remoteAudio.pause();
     remoteAudio.srcObject = null;
+    document.body.removeChild(remoteAudio);
     remoteAudio = null;
   }
   disconnectButton.classList.add('hidden');
@@ -168,7 +176,6 @@ disconnectButton.addEventListener('click', () => {
 speakerButton.addEventListener('click', () => {
   isSpeakerOn = !isSpeakerOn;
   updateAudioOutput();
-  speakerButton.innerHTML = isSpeakerOn ? '<i class="fas fa-volume-up"></i>' : '<i class="fas fa-phone"></i>';
 });
 
 // Initial connection
