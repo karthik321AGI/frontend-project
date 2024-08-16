@@ -10,48 +10,52 @@ body {
 
 .container {
   text-align: center;
+  width: 90%;
+  max-width: 400px;
+  padding: 20px;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+  color: #333;
+  margin-bottom: 20px;
 }
 
 button {
-  padding: 10px 20px;
-  font-size: 16px;
+  padding: 12px 24px;
+  font-size: 18px;
   border: none;
-  border-radius: 5px;
+  border-radius: 25px;
   cursor: pointer;
-  margin: 5px;
+  margin: 10px 0;
+  width: 100%;
+  transition: background-color 0.3s ease;
 }
 
 #connectButton {
-  background-color: #007bff;
+  background-color: #4CAF50;
   color: white;
 }
 
 #connectButton:hover {
-  background-color: #0056b3;
+  background-color: #45a049;
 }
 
 #disconnectButton {
-  background-color: #dc3545;
+  background-color: #f44336;
   color: white;
 }
 
 #disconnectButton:hover {
-  background-color: #c82333;
-}
-
-#speakerButton {
-  background-color: #28a745;
-  color: white;
-}
-
-#speakerButton:hover {
-  background-color: #218838;
+  background-color: #da190b;
 }
 
 #loading,
 #status {
   font-size: 18px;
-  margin: 10px;
+  margin: 15px 0;
   color: #333;
 }
 
@@ -59,8 +63,18 @@ button {
   display: none;
 }
 
-#callControls {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
+@media (max-width: 480px) {
+  .container {
+    width: 95%;
+    padding: 15px;
+  }
+
+  button {
+    font-size: 16px;
+    padding: 10px 20px;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
 }
