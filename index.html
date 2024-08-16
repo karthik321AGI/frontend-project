@@ -4,15 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Club Together</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <h1>Club Together</h1>
         <button id="connectButton">Let's Connect</button>
-        <div id="loading" class="hidden">Connecting...</div>
+        <div id="callControls" class="hidden">
+            <button id="disconnectButton"><i class="fas fa-phone-slash"></i> End Call</button>
+            <button id="muteButton"><i class="fas fa-microphone"></i> Mute</button>
+        </div>
         <div id="status" class="hidden"></div>
-        <button id="disconnectButton" class="hidden">End Call</button>
+        <div id="connectionAnimation" class="hidden">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
     </div>
     <script src="script.js"></script>
 </body>
