@@ -1,57 +1,96 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+
+:root {
+  --primary-color: #2C3E50;
+  --secondary-color: #fcd0d0;
+  --background-color: #F9FAFB;
+  --text-color: #FFFFFF;
+  --danger-color: #e74c3c;
+  --success-color: #2ecc71;
+  --muted-color: #95a5a6;
+}
 
 body {
-  font-family: 'Roboto', sans-serif;
+  font-family: 'Poppins', sans-serif;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  min-height: 100vh;
   margin: 0;
-  background-color: #f0f4f8;
+  background-color: var(--background-color);
 }
 
 .container {
   text-align: center;
   width: 90%;
-  max-width: 400px;
-  padding: 30px;
-  background-color: white;
-  border-radius: 20px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  max-width: 444px;
+  padding: 24px 33.6px;
+  background-color: var(--primary-color);
+  border-radius: 19.2px;
+  box-shadow: 0 9.6px 24px rgba(0, 0, 0, 0.15);
+}
+
+.app-header {
+  margin-bottom: 36px;
+  /* Increased margin */
+}
+
+#lottie-animation {
+  width: 150px;
+  height: 150px;
+  margin: 16px auto;
 }
 
 h1 {
-  color: #2c3e50;
-  margin-bottom: 30px;
+  color: var(--text-color);
+  margin: 0;
+  padding-top: 12px;
   font-weight: 700;
+  font-size: 2.64rem;
+}
+
+.caption {
+  color: var(--text-color);
+  font-weight: 300;
+  font-size: 1.08rem;
+  margin-top: 16px;
+  /* Increased margin */
 }
 
 button {
   padding: 12px 24px;
-  font-size: 18px;
+  font-size: 1.08rem;
   border: none;
-  border-radius: 50px;
+  border-radius: 30px;
   cursor: pointer;
-  margin: 10px 5px;
+  margin: 9.6px 4.8px;
   transition: all 0.3s ease;
-  font-weight: 400;
+  font-weight: 600;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+button i {
+  margin-right: 7.2px;
 }
 
 #connectButton {
-  background-color: #3498db;
-  color: white;
+  background-color: var(--secondary-color);
+  color: var(--primary-color);
   width: 100%;
 }
 
 #connectButton:hover {
-  background-color: #2980b9;
+  background-color: #fab5b5;
+  transform: translateY(-2.4px);
+  box-shadow: 0 4.8px 7.2px rgba(0, 0, 0, 0.1);
 }
 
 #disconnectButton {
-  background-color: #e74c3c;
+  background-color: var(--danger-color);
   color: white;
 }
 
@@ -60,7 +99,7 @@ button {
 }
 
 #muteButton {
-  background-color: #2ecc71;
+  background-color: var(--success-color);
   color: white;
 }
 
@@ -69,69 +108,75 @@ button {
 }
 
 #muteButton.muted {
-  background-color: #95a5a6;
-}
-
-#status {
-  font-size: 18px;
-  margin: 20px 0;
-  color: #34495e;
-  font-weight: 300;
+  background-color: var(--muted-color);
 }
 
 .hidden {
   display: none !important;
 }
 
-#connectionAnimation {
+.connection-animation {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  margin-top: 20px;
+  margin-top: 2.8rem;
+  /* Increased margin */
 }
 
-.dot {
-  width: 10px;
-  height: 10px;
-  background-color: #3498db;
+.pulse {
+  width: 84px;
+  height: 84px;
   border-radius: 50%;
-  margin: 0 5px;
-  animation: bounce 1.5s infinite ease-in-out;
+  background-color: var(--secondary-color);
+  box-shadow: 0 0 0 rgba(255, 192, 192);
+  animation: pulse 2s infinite;
+  margin-bottom: 24px;
+  /* Added margin below pulse */
 }
 
-.dot:nth-child(2) {
-  animation-delay: 0.2s;
-}
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 192, 192);
+  }
 
-.dot:nth-child(3) {
-  animation-delay: 0.4s;
-}
+  70% {
+    box-shadow: 0 0 0 42px rgba(243, 156, 18, 0);
+  }
 
-@keyframes bounce {
-
-  0%,
-  80%,
   100% {
-    transform: scale(0);
+    box-shadow: 0 0 0 0 rgba(243, 156, 18, 0);
   }
+}
 
-  40% {
-    transform: scale(1);
-  }
+.connection-animation p {
+  margin-top: 1.2rem;
+  font-weight: 600;
+  color: var(--text-color);
+  font-size: 1.1rem;
 }
 
 @media (max-width: 480px) {
   .container {
-    width: 95%;
-    padding: 20px;
+    width: 85%;
+    padding: 24px 18px;
   }
 
   button {
-    font-size: 16px;
-    padding: 10px 20px;
+    font-size: 1.02rem;
+    padding: 10.8px 21.6px;
   }
 
   h1 {
-    font-size: 24px;
+    font-size: 2.16rem;
   }
+
+  .caption {
+    font-size: 0.96rem;
+  }
+
+  #lottie-animation {
+    width: 150px;
+    height: 150px;
+  }
+
 }

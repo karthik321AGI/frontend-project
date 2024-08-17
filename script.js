@@ -8,34 +8,32 @@ const connectButton = document.getElementById('connectButton');
 const disconnectButton = document.getElementById('disconnectButton');
 const muteButton = document.getElementById('muteButton');
 const callControls = document.getElementById('callControls');
-const statusDiv = document.getElementById('status');
 const connectionAnimation = document.getElementById('connectionAnimation');
 
-function setStatus(message) {
-  statusDiv.textContent = message;
-  statusDiv.classList.remove('hidden');
-}
+const animation = lottie.loadAnimation({
+  container: document.getElementById('lottie-animation'),
+  renderer: 'svg',
+  loop: true,
+  autoplay: true,
+  path: 'assets/rabbit.json'
+});
 
-async function checkMicrophonePermission() {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    stream.getTracks().forEach(track => track.stop());
-    return true;
-  } catch (error) {
-    console.error('Error accessing microphone:', error);
-    return false;
-  }
-}
+animation.setSpeed(1);
+animation.setSubframe(false);
 
-async function setupMediaStream() {
-  try {
-    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    return true;
-  } catch (error) {
-    console.error('Error accessing media devices:', error);
-    setStatus('Failed to access microphone');
-    return false;
+async function getLocalStream() {
+  if (!localStream) {
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: false
+      });
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      return null;
+    }
   }
+  return localStream;
 }
 
 function createPeerConnection() {
@@ -55,14 +53,22 @@ function createPeerConnection() {
     remoteAudio.play();
   };
 
-  localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+  if (localStream) {
+    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+  }
 }
 
 function connectWebSocket() {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    console.log('WebSocket already connected');
+    return;
+  }
+
   ws = new WebSocket(wsUrl);
 
   ws.onopen = () => {
     console.log('WebSocket connection established');
+    connectButton.disabled = false;
   };
 
   ws.onmessage = async (event) => {
@@ -73,7 +79,6 @@ function connectWebSocket() {
       case 'connection_established':
         connectionAnimation.classList.add('hidden');
         callControls.classList.remove('hidden');
-        setStatus('Call connected');
         createPeerConnection();
         if (data.initiator) {
           const offer = await peerConnection.createOffer();
@@ -95,49 +100,36 @@ function connectWebSocket() {
           await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
         }
         break;
-      case 'waiting_for_peer':
-        setStatus('Waiting for another user...');
-        break;
       case 'call_ended':
-        endCall();
+        handleCallEnded();
         break;
     }
   };
 
   ws.onerror = (error) => {
     console.error('WebSocket error:', error);
-    setStatus('Error: Could not connect to the server');
   };
 
   ws.onclose = () => {
     console.log('WebSocket connection closed');
-    setStatus('Disconnected from server');
+    connectButton.disabled = false;
   };
 }
 
 connectButton.addEventListener('click', async () => {
+  connectButton.disabled = true;
   connectButton.classList.add('hidden');
   connectionAnimation.classList.remove('hidden');
-  setStatus('Connecting to available user...');
 
-  const hasMicrophonePermission = await checkMicrophonePermission();
-  if (!hasMicrophonePermission) {
-    setStatus('Failed to access microphone');
+  const stream = await getLocalStream();
+  if (!stream) {
     connectionAnimation.classList.add('hidden');
     connectButton.classList.remove('hidden');
+    connectButton.disabled = false;
     return;
   }
 
-  if (!localStream) {
-    const streamSetup = await setupMediaStream();
-    if (!streamSetup) {
-      connectionAnimation.classList.add('hidden');
-      connectButton.classList.remove('hidden');
-      return;
-    }
-  }
-
-  if (!ws || ws.readyState === WebSocket.CLOSED) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
     connectWebSocket();
   }
 
@@ -145,9 +137,6 @@ connectButton.addEventListener('click', async () => {
 });
 
 disconnectButton.addEventListener('click', () => {
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ type: 'end_call' }));
-  }
   endCall();
 });
 
@@ -162,25 +151,42 @@ function updateMuteButtonState() {
   muteButton.classList.toggle('muted', isMuted);
 }
 
-function endCall() {
+function handleCallEnded() {
   if (peerConnection) {
     peerConnection.close();
     peerConnection = null;
   }
-  if (localStream) {
-    localStream.getTracks().forEach(track => track.stop());
-    localStream = null;
-  }
   callControls.classList.add('hidden');
   connectButton.classList.remove('hidden');
+  connectButton.disabled = false;
   connectionAnimation.classList.add('hidden');
-  setStatus('Call ended');
 
-  // Refresh the page after a short delay
-  setTimeout(() => {
-    window.location.reload();
-  }, 1000);
+  isMuted = false;
+  updateMuteButtonState();
 }
 
-// Initial WebSocket connection
+function endCall() {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'end_call' }));
+  }
+  handleCallEnded();
+}
+
+function keepScreenOn() {
+  if ('wakeLock' in navigator) {
+    navigator.wakeLock.request('screen').then(lock => {
+      console.log('Screen wake lock is active');
+    }).catch(err => {
+      console.error(`${err.name}, ${err.message}`);
+    });
+  }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && peerConnection) {
+    peerConnection.restartIce();
+  }
+});
+
 connectWebSocket();
+keepScreenOn();
