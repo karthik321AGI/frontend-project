@@ -32,7 +32,6 @@ body {
 
 .app-header {
   margin-bottom: 36px;
-  /* Increased margin */
 }
 
 #lottie-animation {
@@ -54,7 +53,6 @@ h1 {
   font-weight: 300;
   font-size: 1.08rem;
   margin-top: 16px;
-  /* Increased margin */
 }
 
 button {
@@ -120,7 +118,6 @@ button i {
   flex-direction: column;
   align-items: center;
   margin-top: 2.8rem;
-  /* Increased margin */
 }
 
 .pulse {
@@ -131,7 +128,6 @@ button i {
   box-shadow: 0 0 0 rgba(255, 192, 192);
   animation: pulse 2s infinite;
   margin-bottom: 24px;
-  /* Added margin below pulse */
 }
 
 @keyframes pulse {
@@ -155,15 +151,24 @@ button i {
   font-size: 1.1rem;
 }
 
+#callControls {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+#disconnectButton,
+#muteButton {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 10px;
+  font-size: 1rem;
+}
+
 @media (max-width: 480px) {
   .container {
     width: 85%;
     padding: 24px 18px;
-  }
-
-  button {
-    font-size: 1.02rem;
-    padding: 10.8px 21.6px;
   }
 
   h1 {
@@ -179,4 +184,26 @@ button i {
     height: 150px;
   }
 
+  #disconnectButton,
+  #muteButton {
+    font-size: 0.8rem;
+    padding: 10px 5px;
+  }
+
+  button i {
+    margin-right: 4px;
+  }
+}
+
+@media (max-width: 350px) {
+
+  #disconnectButton,
+  #muteButton {
+    font-size: 0.7rem;
+    padding: 8px 4px;
+  }
+
+  button i {
+    margin-right: 2px;
+  }
 }
