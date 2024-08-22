@@ -207,3 +207,10 @@ button i {
     margin-right: 2px;
   }
 }
+
+
+#roomIdDisplay {
+  color: var(--text-color);
+  font-weight: 600;
+  margin-top: 1rem;
+}

@@ -1,7 +1,8 @@
 const wsUrl = 'wss://backend-project-5r9n.onrender.com';
 let ws;
-let peerConnection;
 let localStream;
+let peerConnections = new Map();
+let roomId = null;
 let isMuted = false;
 
 const connectButton = document.getElementById('connectButton');
@@ -9,17 +10,11 @@ const disconnectButton = document.getElementById('disconnectButton');
 const muteButton = document.getElementById('muteButton');
 const callControls = document.getElementById('callControls');
 const connectionAnimation = document.getElementById('connectionAnimation');
+const roomIdDisplay = document.createElement('p');
+roomIdDisplay.id = 'roomIdDisplay';
+document.querySelector('.main-content').appendChild(roomIdDisplay);
 
-const animation = lottie.loadAnimation({
-  container: document.getElementById('lottie-animation'),
-  renderer: 'svg',
-  loop: true,
-  autoplay: true,
-  path: 'assets/rabbit.json'
-});
-
-animation.setSpeed(1);
-animation.setSubframe(false);
+// ... (keep the existing animation code)
 
 async function getLocalStream() {
   if (!localStream) {
@@ -36,14 +31,18 @@ async function getLocalStream() {
   return localStream;
 }
 
-function createPeerConnection() {
-  peerConnection = new RTCPeerConnection({
+function createPeerConnection(participantId) {
+  const peerConnection = new RTCPeerConnection({
     iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
   });
 
   peerConnection.onicecandidate = (event) => {
     if (event.candidate) {
-      ws.send(JSON.stringify({ type: 'ice_candidate', candidate: event.candidate }));
+      ws.send(JSON.stringify({
+        type: 'ice_candidate',
+        candidate: event.candidate,
+        targetId: participantId
+      }));
     }
   };
 
@@ -56,6 +55,8 @@ function createPeerConnection() {
   if (localStream) {
     localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
   }
+
+  return peerConnection;
 }
 
 function connectWebSocket() {
@@ -76,32 +77,41 @@ function connectWebSocket() {
     console.log('Received message:', data);
 
     switch (data.type) {
-      case 'connection_established':
+      case 'room_created':
+      case 'room_joined':
+        roomId = data.roomId;
+        roomIdDisplay.textContent = `Room ID: ${roomId}`;
         connectionAnimation.classList.add('hidden');
         callControls.classList.remove('hidden');
-        createPeerConnection();
-        if (data.initiator) {
-          const offer = await peerConnection.createOffer();
-          await peerConnection.setLocalDescription(offer);
-          ws.send(JSON.stringify({ type: 'offer', offer: offer }));
-        }
+        break;
+      case 'new_participant':
+        const newPeerConnection = createPeerConnection(data.id);
+        peerConnections.set(data.id, newPeerConnection);
+        const offer = await newPeerConnection.createOffer();
+        await newPeerConnection.setLocalDescription(offer);
+        ws.send(JSON.stringify({ type: 'offer', offer: offer, targetId: data.id }));
         break;
       case 'offer':
+        const peerConnection = createPeerConnection(data.senderId);
+        peerConnections.set(data.senderId, peerConnection);
         await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
-        ws.send(JSON.stringify({ type: 'answer', answer: answer }));
+        ws.send(JSON.stringify({ type: 'answer', answer: answer, targetId: data.senderId }));
         break;
       case 'answer':
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+        await peerConnections.get(data.senderId).setRemoteDescription(new RTCSessionDescription(data.answer));
         break;
       case 'ice_candidate':
-        if (peerConnection) {
-          await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+        if (peerConnections.has(data.senderId)) {
+          await peerConnections.get(data.senderId).addIceCandidate(new RTCIceCandidate(data.candidate));
         }
         break;
-      case 'call_ended':
-        handleCallEnded();
+      case 'participant_left':
+        if (peerConnections.has(data.id)) {
+          peerConnections.get(data.id).close();
+          peerConnections.delete(data.id);
+        }
         break;
     }
   };
@@ -133,11 +143,11 @@ connectButton.addEventListener('click', async () => {
     connectWebSocket();
   }
 
-  ws.send(JSON.stringify({ type: 'request_connection' }));
+  ws.send(JSON.stringify({ type: 'create_room' }));
 });
 
 disconnectButton.addEventListener('click', () => {
-  endCall();
+  leaveRoom();
 });
 
 muteButton.addEventListener('click', () => {
@@ -151,25 +161,20 @@ function updateMuteButtonState() {
   muteButton.classList.toggle('muted', isMuted);
 }
 
-function handleCallEnded() {
-  if (peerConnection) {
-    peerConnection.close();
-    peerConnection = null;
+function leaveRoom() {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'leave_room' }));
   }
+  peerConnections.forEach(pc => pc.close());
+  peerConnections.clear();
+  roomId = null;
+  roomIdDisplay.textContent = '';
   callControls.classList.add('hidden');
   connectButton.classList.remove('hidden');
   connectButton.disabled = false;
   connectionAnimation.classList.add('hidden');
-
   isMuted = false;
   updateMuteButtonState();
-}
-
-function endCall() {
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ type: 'end_call' }));
-  }
-  handleCallEnded();
 }
 
 function keepScreenOn() {
@@ -183,8 +188,8 @@ function keepScreenOn() {
 }
 
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && peerConnection) {
-    peerConnection.restartIce();
+  if (!document.hidden && peerConnections.size > 0) {
+    peerConnections.forEach(pc => pc.restartIce());
   }
 });
 
