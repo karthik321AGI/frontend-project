@@ -75,13 +75,15 @@ button i {
   margin-right: 7.2px;
 }
 
-#connectButton {
+#createRoomButton,
+#joinRoomButton {
   background-color: var(--secondary-color);
   color: var(--primary-color);
   width: 100%;
 }
 
-#connectButton:hover {
+#createRoomButton:hover,
+#joinRoomButton:hover {
   background-color: #fab5b5;
   transform: translateY(-2.4px);
   box-shadow: 0 4.8px 7.2px rgba(0, 0, 0, 0.1);
@@ -165,6 +167,22 @@ button i {
   font-size: 1rem;
 }
 
+#roomIdInput {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: none;
+  border-radius: 5px;
+  font-size: 1rem;
+}
+
+#roomIdDisplay,
+#participantsCount {
+  color: var(--text-color);
+  font-weight: 600;
+  margin-top: 1rem;
+}
+
 @media (max-width: 480px) {
   .container {
     width: 85%;
@@ -180,8 +198,8 @@ button i {
   }
 
   #lottie-animation {
-    width: 150px;
-    height: 150px;
+    width: 120px;
+    height: 120px;
   }
 
   #disconnectButton,
@@ -206,11 +224,4 @@ button i {
   button i {
     margin-right: 2px;
   }
-}
-
-
-#roomIdDisplay {
-  color: var(--text-color);
-  font-weight: 600;
-  margin-top: 1rem;
 }

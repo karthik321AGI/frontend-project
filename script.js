@@ -14,6 +14,7 @@ const callControls = document.getElementById('callControls');
 const connectionAnimation = document.getElementById('connectionAnimation');
 const roomIdDisplay = document.getElementById('roomIdDisplay');
 const participantsCount = document.getElementById('participantsCount');
+const roomControls = document.getElementById('roomControls');
 
 async function getLocalStream() {
   if (!localStream) {
@@ -94,6 +95,7 @@ function connectWebSocket() {
         roomIdDisplay.textContent = `Room ID: ${roomId}`;
         connectionAnimation.classList.add('hidden');
         callControls.classList.remove('hidden');
+        roomControls.classList.add('hidden');
         updateParticipantsCount(data.participants);
         break;
       case 'new_participant':
@@ -227,6 +229,7 @@ function leaveRoom() {
   roomIdDisplay.textContent = '';
   participantsCount.textContent = '';
   callControls.classList.add('hidden');
+  roomControls.classList.remove('hidden');
   createRoomButton.disabled = false;
   joinRoomButton.disabled = false;
   connectionAnimation.classList.add('hidden');
@@ -250,7 +253,11 @@ function keepScreenOn() {
 
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden && peerConnections.size > 0) {
-    peerConnections.forEach(pc => pc.restartIce());
+    peerConnections.forEach(pc => {
+      if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
+        pc.restartIce();
+      }
+    });
   }
 });
 
