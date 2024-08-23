@@ -16,6 +16,17 @@ const roomIdDisplay = document.getElementById('roomIdDisplay');
 const participantsCount = document.getElementById('participantsCount');
 const roomControls = document.getElementById('roomControls');
 
+const iceServers = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:stun2.l.google.com:19302' },
+  { urls: 'stun:stun3.l.google.com:19302' },
+  { urls: 'stun:stun4.l.google.com:19302' },
+  { urls: 'stun:stun.ekiga.net' },
+  { urls: 'stun:stun.ideasip.com' },
+  { urls: 'stun:stun.stunprotocol.org:3478' }
+];
+
 async function getLocalStream() {
   if (!localStream) {
     try {
@@ -36,11 +47,11 @@ async function getLocalStream() {
 function createPeerConnection(participantId) {
   console.log('Creating peer connection for participant:', participantId);
   const peerConnection = new RTCPeerConnection({
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun2.l.google.com:19302' },
-    ]
+    iceServers: iceServers,
+    iceTransportPolicy: 'all',
+    bundlePolicy: 'max-bundle',
+    rtcpMuxPolicy: 'require',
+    iceCandidatePoolSize: 10
   });
 
   peerConnection.onicecandidate = (event) => {
@@ -51,6 +62,14 @@ function createPeerConnection(participantId) {
         candidate: event.candidate,
         targetId: participantId
       }));
+    }
+  };
+
+  peerConnection.oniceconnectionstatechange = () => {
+    console.log('ICE connection state change:', peerConnection.iceConnectionState);
+    if (peerConnection.iceConnectionState === 'failed' || peerConnection.iceConnectionState === 'disconnected') {
+      console.log('Attempting ICE restart');
+      peerConnection.restartIce();
     }
   };
 
@@ -65,6 +84,14 @@ function createPeerConnection(participantId) {
     console.log('Adding local stream to peer connection');
     localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
   }
+
+  // Set up periodic ICE restart
+  setInterval(() => {
+    if (peerConnection.iceConnectionState !== 'connected' && peerConnection.iceConnectionState !== 'completed') {
+      console.log('Performing periodic ICE restart');
+      peerConnection.restartIce();
+    }
+  }, 30000);
 
   return peerConnection;
 }
