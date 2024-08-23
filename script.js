@@ -16,17 +16,6 @@ const roomIdDisplay = document.getElementById('roomIdDisplay');
 const participantsCount = document.getElementById('participantsCount');
 const roomControls = document.getElementById('roomControls');
 
-const iceServers = [
-  { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' },
-  { urls: 'stun:stun2.l.google.com:19302' },
-  { urls: 'stun:stun3.l.google.com:19302' },
-  { urls: 'stun:stun4.l.google.com:19302' },
-  { urls: 'stun:stun.ekiga.net' },
-  { urls: 'stun:stun.ideasip.com' },
-  { urls: 'stun:stun.stunprotocol.org:3478' }
-];
-
 async function getLocalStream() {
   if (!localStream) {
     try {
@@ -47,11 +36,31 @@ async function getLocalStream() {
 function createPeerConnection(participantId) {
   console.log('Creating peer connection for participant:', participantId);
   const peerConnection = new RTCPeerConnection({
-    iceServers: iceServers,
-    iceTransportPolicy: 'all',
-    bundlePolicy: 'max-bundle',
-    rtcpMuxPolicy: 'require',
-    iceCandidatePoolSize: 10
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:stun3.l.google.com:19302' },
+      { urls: 'stun:stun4.l.google.com:19302' },
+      { urls: 'stun:stun.ekiga.net' },
+      { urls: 'stun:stun.ideasip.com' },
+      { urls: 'stun:stun.schlund.de' },
+      { urls: 'stun:stun.stunprotocol.org:3478' },
+      { urls: 'stun:stun.voiparound.com' },
+      { urls: 'stun:stun.voipbuster.com' },
+      { urls: 'stun:stun.voipstunt.com' },
+      { urls: 'stun:stun.voxgratia.org' },
+      {
+        urls: 'turn:numb.viagenie.ca',
+        username: 'webrtc@live.com',
+        credential: 'muazkh'
+      },
+      {
+        urls: 'turn:turn.anyfirewall.com:443?transport=tcp',
+        username: 'webrtc',
+        credential: 'webrtc'
+      }
+    ]
   });
 
   peerConnection.onicecandidate = (event) => {
@@ -65,14 +74,6 @@ function createPeerConnection(participantId) {
     }
   };
 
-  peerConnection.oniceconnectionstatechange = () => {
-    console.log('ICE connection state change:', peerConnection.iceConnectionState);
-    if (peerConnection.iceConnectionState === 'failed' || peerConnection.iceConnectionState === 'disconnected') {
-      console.log('Attempting ICE restart');
-      peerConnection.restartIce();
-    }
-  };
-
   peerConnection.ontrack = (event) => {
     console.log('Received remote track');
     const remoteAudio = new Audio();
@@ -80,18 +81,17 @@ function createPeerConnection(participantId) {
     remoteAudio.play().catch(e => console.error('Error playing audio:', e));
   };
 
+  peerConnection.onconnectionstatechange = (event) => {
+    if (peerConnection.connectionState === 'failed') {
+      console.log('Connection failed, attempting to restart ICE');
+      peerConnection.restartIce();
+    }
+  };
+
   if (localStream) {
     console.log('Adding local stream to peer connection');
     localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
   }
-
-  // Set up periodic ICE restart
-  setInterval(() => {
-    if (peerConnection.iceConnectionState !== 'connected' && peerConnection.iceConnectionState !== 'completed') {
-      console.log('Performing periodic ICE restart');
-      peerConnection.restartIce();
-    }
-  }, 30000);
 
   return peerConnection;
 }
@@ -160,6 +160,10 @@ function connectWebSocket() {
           peerConnections.delete(data.id);
         }
         updateParticipantsCount(data.participants);
+        break;
+      case 'ice_restart':
+        console.log('Received ICE restart request from:', data.senderId);
+        restartIce(data.senderId);
         break;
     }
   };
@@ -275,6 +279,14 @@ function keepScreenOn() {
     }).catch(err => {
       console.error(`${err.name}, ${err.message}`);
     });
+  }
+}
+
+function restartIce(participantId) {
+  console.log('Restarting ICE for participant:', participantId);
+  const peerConnection = peerConnections.get(participantId);
+  if (peerConnection) {
+    peerConnection.restartIce();
   }
 }
 
