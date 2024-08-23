@@ -52,23 +52,31 @@ function createPeerConnection(participantId) {
   console.log('Creating peer connection for participant:', participantId);
   const peerConnection = new RTCPeerConnection({
     iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun2.l.google.com:19302' },
-      { urls: 'stun:stun3.l.google.com:19302' },
-      { urls: 'stun:stun4.l.google.com:19302' },
-      { urls: 'stun:stun.ekiga.net' },
-      { urls: 'stun:stun.ideasip.com' },
-      { urls: 'stun:stun.schlund.de' },
-      { urls: 'stun:stun.stunprotocol.org:3478' },
-      { urls: 'stun:stun.voiparound.com' },
-      { urls: 'stun:stun.voipbuster.com' },
-      { urls: 'stun:stun.voipstunt.com' },
-      { urls: 'stun:stun.voxgratia.org' },
+      { urls: "stun:stun.l.google.com:19302" },
+      { urls: "stun:stun1.l.google.com:19302" },
+      { urls: "stun:stun2.l.google.com:19302" },
+      { urls: "stun:stun3.l.google.com:19302" },
+      { urls: "stun:stun4.l.google.com:19302" },
+      { urls: "stun:stun.relay.metered.ca:80" },
       {
-        urls: 'turn:relay1.expressturn.com:3478',
-        username: 'efTGFF1OHICZQKHKV0',
-        credential: 'SYC4QETMqCOKOX2l'
+        urls: "turn:global.relay.metered.ca:80",
+        username: "e71c4a9cf031d7330ef0b2de",
+        credential: "PSt/7RpLC4ErNFGu"
+      },
+      {
+        urls: "turn:global.relay.metered.ca:80?transport=tcp",
+        username: "e71c4a9cf031d7330ef0b2de",
+        credential: "PSt/7RpLC4ErNFGu"
+      },
+      {
+        urls: "turn:global.relay.metered.ca:443",
+        username: "e71c4a9cf031d7330ef0b2de",
+        credential: "PSt/7RpLC4ErNFGu"
+      },
+      {
+        urls: "turns:global.relay.metered.ca:443?transport=tcp",
+        username: "e71c4a9cf031d7330ef0b2de",
+        credential: "PSt/7RpLC4ErNFGu"
       }
     ]
   });
@@ -94,10 +102,11 @@ function createPeerConnection(participantId) {
     remoteAudio.play().catch(e => console.error('Error playing audio:', e));
   };
 
-  peerConnection.onconnectionstatechange = (event) => {
-    if (peerConnection.connectionState === 'failed') {
+  peerConnection.oniceconnectionstatechange = (event) => {
+    console.log(`ICE connection state change: ${peerConnection.iceConnectionState}`);
+    if (peerConnection.iceConnectionState === 'failed') {
       console.log('Connection failed, attempting to restart ICE');
-      peerConnection.restartIce();
+      restartIce(participantId);
     }
   };
 
