@@ -33,6 +33,21 @@ async function getLocalStream() {
   return localStream;
 }
 
+function createDataChannel(peerConnection, participantId) {
+  const dataChannel = peerConnection.createDataChannel('holepunch');
+
+  dataChannel.onopen = () => {
+    console.log('Data channel opened');
+    startHolePunching(dataChannel, participantId);
+  };
+
+  dataChannel.onmessage = (event) => {
+    handleHolePunchMessage(JSON.parse(event.data), participantId);
+  };
+
+  return dataChannel;
+}
+
 function createPeerConnection(participantId) {
   console.log('Creating peer connection for participant:', participantId);
   const peerConnection = new RTCPeerConnection({
@@ -62,6 +77,9 @@ function createPeerConnection(participantId) {
       }
     ]
   });
+
+  const dataChannel = createDataChannel(peerConnection, participantId);
+  peerConnection.dataChannel = dataChannel;
 
   peerConnection.onicecandidate = (event) => {
     if (event.candidate) {
@@ -94,6 +112,30 @@ function createPeerConnection(participantId) {
   }
 
   return peerConnection;
+}
+
+function startHolePunching(dataChannel, participantId) {
+  const candidates = [];
+
+  peerConnections.get(participantId).onicecandidate = (event) => {
+    if (event.candidate) {
+      candidates.push(event.candidate);
+    } else {
+      // ICE gathering complete, send candidates
+      dataChannel.send(JSON.stringify({
+        type: 'hole_punch_candidates',
+        candidates: candidates
+      }));
+    }
+  };
+}
+
+function handleHolePunchMessage(data, participantId) {
+  if (data.type === 'hole_punch_candidates') {
+    data.candidates.forEach(candidate => {
+      peerConnections.get(participantId).addIceCandidate(new RTCIceCandidate(candidate));
+    });
+  }
 }
 
 function connectWebSocket() {
@@ -164,6 +206,16 @@ function connectWebSocket() {
       case 'ice_restart':
         console.log('Received ICE restart request from:', data.senderId);
         restartIce(data.senderId);
+        break;
+      case 'hole_punch_start':
+        const targetPeerConnection = peerConnections.get(data.targetId);
+        if (targetPeerConnection && targetPeerConnection.dataChannel) {
+          startHolePunching(targetPeerConnection.dataChannel, data.targetId);
+        }
+        break;
+      case 'relayed_message':
+        console.log('Received relayed message from:', data.senderId);
+        handleRelayedMessage(data.message, data.senderId);
         break;
     }
   };
@@ -288,6 +340,26 @@ function restartIce(participantId) {
   if (peerConnection) {
     peerConnection.restartIce();
   }
+}
+
+function sendMessageWithFallback(message, targetId) {
+  const peerConnection = peerConnections.get(targetId);
+  if (peerConnection && peerConnection.dataChannel && peerConnection.dataChannel.readyState === 'open') {
+    peerConnection.dataChannel.send(JSON.stringify(message));
+  } else {
+    // Fallback to relay through server
+    ws.send(JSON.stringify({
+      type: 'relay_message',
+      targetId: targetId,
+      message: message
+    }));
+  }
+}
+
+function handleRelayedMessage(message, senderId) {
+  // Handle the relayed message here
+  console.log('Handling relayed message from:', senderId, 'Message:', message);
+  // You may want to process the message or update the UI based on its content
 }
 
 document.addEventListener('visibilitychange', () => {
