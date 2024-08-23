@@ -66,14 +66,9 @@ function createPeerConnection(participantId) {
       { urls: 'stun:stun.voipstunt.com' },
       { urls: 'stun:stun.voxgratia.org' },
       {
-        urls: 'turn:numb.viagenie.ca',
-        username: 'webrtc@live.com',
-        credential: 'muazkh'
-      },
-      {
-        urls: 'turn:turn.anyfirewall.com:443?transport=tcp',
-        username: 'webrtc',
-        credential: 'webrtc'
+        urls: 'turn:relay1.expressturn.com:3478',
+        username: 'efTGFF1OHICZQKHKV0',
+        credential: 'SYC4QETMqCOKOX2l'
       }
     ]
   });
@@ -339,6 +334,16 @@ function restartIce(participantId) {
   const peerConnection = peerConnections.get(participantId);
   if (peerConnection) {
     peerConnection.restartIce();
+    // Create and send a new offer after restarting ICE
+    peerConnection.createOffer({ iceRestart: true })
+      .then(offer => peerConnection.setLocalDescription(offer))
+      .then(() => {
+        ws.send(JSON.stringify({
+          type: 'offer',
+          offer: peerConnection.localDescription,
+          targetId: participantId
+        }));
+      });
   }
 }
 
@@ -361,6 +366,18 @@ function handleRelayedMessage(message, senderId) {
   console.log('Handling relayed message from:', senderId, 'Message:', message);
   // You may want to process the message or update the UI based on its content
 }
+
+function checkConnections() {
+  peerConnections.forEach((pc, participantId) => {
+    if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
+      console.log(`Connection to ${participantId} is ${pc.iceConnectionState}. Restarting ICE.`);
+      restartIce(participantId);
+    }
+  });
+}
+
+// Call this function every 10 seconds
+setInterval(checkConnections, 10000);
 
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden && peerConnections.size > 0) {
